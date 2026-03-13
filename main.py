@@ -30,7 +30,7 @@ def conn(configs, dataset, budget, k, size_eval, evaluation_func):
         part1 = [i[1] for i in eval_configs_list]
         part2 = [j[0] for j in eval_configs_list]
         eval_configs : Dataset = Dataset(np.array(part1).squeeze(), np.array(part2).squeeze())
-        model = knn_factory(k, eval_configs, (lambda q, p : np.sum(np.sqrt(q**2 + p**2))))
+        model = knn_factory(k, eval_configs, (lambda q, p : np.sqrt(np.sum((q - p)**2))))
         predict_xs = []
         for l in range(0, len(remainder_configs)):
             predict_xs.append((l, model(np.array(remainder_configs[l]))))
@@ -59,4 +59,4 @@ def main(directory, search_function, **params):
         print(f"System: {filename}\n\tBest solution:\t\t{best_complexity[0].tolist()}\n\tBest performance:\t{best_complexity[1].item()}\n")
 
 if __name__ == "__main__":
-    main("datasets", conn, budget=100, k=3, size_eval=10, evaluation_func=min)
+    main("datasets", conn, budget=100-2, k=3, size_eval=2, evaluation_func=min)
