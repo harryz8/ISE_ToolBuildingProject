@@ -51,11 +51,12 @@ def measure(dataset, x):
     find_x = np.all(dataset.data == x, axis=1)
     return dataset.data[find_x], dataset.labels[find_x]
 
-def main(filename, directory, search_function, **params):
+def main(directory, search_function, **params):
     files = os.listdir(directory)
-    data: Dataset = load_csv(filename, directory, dtype=float)
-    best_complexity = search_function(data.data.copy(), data, **params)
-    return best_complexity
+    for filename in files:
+        data: Dataset = load_csv(filename, directory, dtype=float)
+        best_complexity = search_function(data.data.copy(), data, **params)
+        print(f"System: {filename}\n\tBest solution:\t\t{best_complexity[0].tolist()}\n\tBest performance:\t{best_complexity[1].item()}\n")
 
 if __name__ == "__main__":
-    print(main("brotli.csv", "datasets", conn, budget=10, k=3, size_eval=10, evaluation_func=min)[1].item())
+    main("datasets", conn, budget=100, k=3, size_eval=10, evaluation_func=min)
