@@ -5,31 +5,13 @@ import time
 
 def knn_factory(k, training : Dataset, distance_func):
     def knn(x_new):
-        closest = []
-        for i in range(0, len(training.data)):
-            x = training.data[i, :]
-            y = training.labels[i]
-            d = distance_func(x_new, x)
-            if len(closest) < k:
-                closest.append((x, y, d))
-            else:
-                for point in range(0, len(closest)):
-                    if d < closest[point][2]:
-                        del closest[point]
-                        closest.append((x, y, d))
-        sum_y = 0
-        for (x, y, d) in closest:
-            sum_y += y
-        return sum_y / len(closest)
-
-    def knn_vector(x_new):
         dist_vector = distance_func(training.data, x_new)
         combo_vec = np.c_[(np.c_[training.data, training.labels]), dist_vector]
         combo_vec = combo_vec[combo_vec[:, -1].argsort()]
         closest = combo_vec[:k, :]
         return np.sum(closest[:, -2]) / closest.shape[0]
 
-    return knn_vector
+    return knn
 
 def vector_euclidean_distance(vector1, new_x):
     minus = vector1 - new_x
