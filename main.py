@@ -1,5 +1,8 @@
 import numpy as np
 import os
+
+import NN
+from NN import update_weights
 from dataset import Dataset, load_csv
 import time
 
@@ -67,6 +70,30 @@ def main(directory, search_function, **params):
         print(f"Absolute error: {abs_error.item():.4f}\n")
     print(f"Total time taken: {(time.time() - start):.2f}s")
 
+def test_train(directory):
+    data: Dataset = load_csv("./storm.csv", directory, dtype=float)
+    test_set = data[:np.floor(0.8*data.data.shape[1]).astype(int)]
+    hidden_size = 10
+    input_size = test_set.data.shape[1]
+    max_row = np.max(test_set.data, axis=0, keepdims=True)
+
+    epochs = 300
+    learning_rate = 0.001
+
+    model = NN.MLP(input_size, hidden_size)
+
+    for epoch in range(epochs):
+        # test_set.apply(np.random.shuffle)
+        test_set_data = test_set.data / max_row
+        output = model.forward(test_set_data)
+        flat_output = output.flatten()
+        loss = ((data.labels[:flat_output.shape[0]] - flat_output)**2).mean()
+        model.backward(test_set_data, test_set.labels, output)
+        update_weights(model, learning_rate)
+        if (epoch % 10 == 0):
+            print(f"loss: {loss}")
+
 if __name__ == "__main__":
-    for count_i in range(0, 10):
-        main("datasets", conn, budget=100-2, k=3, size_eval=2, evaluation_func=min)
+    # for count_i in range(0, 10):
+    #     main("datasets", conn, budget=100-2, k=3, size_eval=2, evaluation_func=min)
+    test_train("datasets")
