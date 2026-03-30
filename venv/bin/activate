@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV='/home/harry/University/Y3/Intelligent Software Engineering/ISE_ToolBuildingProject/venv'
+VIRTUAL_ENV=/home/harry/ISE_ToolBuildingProject/venv
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

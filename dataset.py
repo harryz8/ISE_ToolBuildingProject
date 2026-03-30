@@ -19,6 +19,9 @@ class Dataset:
     def __getitem__(self, index):
         return Dataset(self.labels[index], self.data[index])
 
+    def copy(self, index):
+        return Dataset(self.labels[index].copy(), self.data[index].copy())
+
     def __len__(self):
         return self.labels.shape[0]
 
