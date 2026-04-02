@@ -9,10 +9,11 @@ hyperparameters = {
     "size_eval": 10,
     "hidden_size": 10,
     "epochs": 300,
+    "epochs_1batch": 30,
     "learning_rate": 0.01
 }
 
-def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs, learning_rate, evaluation_func):
+def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs, learning_rate, epochs_1batch, evaluation_func):
     max_row = np.max(dataset.data, axis=0, keepdims=True)
     max_label = np.max(dataset.labels)
     np.random.shuffle(configs)
@@ -31,8 +32,9 @@ def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs,
             predict_xs.append((l, model.forward(np.array(remainder_configs[l]) / max_row)))
         max_point = evaluation_func(predict_xs, key=lambda x: x[1])
         acquired_point = measure(dataset, remainder_configs[max_point[0]])
-        model.backward(np.array(remainder_configs[max_point[0]]) / max_row, acquired_point[1] / max_label, max_point[1])
-        update_weights(model, learning_rate=learning_rate)
+        for epoch in range(epochs_1batch):
+            model.backward(np.array(remainder_configs[max_point[0]]) / max_row, acquired_point[1] / max_label, max_point[1])
+            update_weights(model, learning_rate=learning_rate)
         # print(f"flash loss: {((acquired_point[1] / max_label - max_point[1])**2)}")
         eval_configs_list.append(acquired_point)
         del remainder_configs[max_point[0]]
@@ -61,8 +63,10 @@ def main(directory, search_function, **params):
               f"\tBest performance:\t{best_complexity[1].item()}")
         real_best_complexity = np.min(data.labels)
         abs_error = np.abs(best_complexity[1] - real_best_complexity)
-
-        with open(f"./error_new/{filename.split('.')[0]}_error.csv", "a") as f:
+        if not os.path.isfile(f"./error_new_new/{filename.split('.')[0]}_errors.csv"):
+            with open(f"./error_new_new/{filename.split('.')[0]}_errors.csv", "w") as f:
+                f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
+        with open(f"./error_new_new/{filename.split('.')[0]}_error.csv", "a") as f:
             f.write(f"{params['budget']},{params['size_eval']},{params['hidden_size']},{params['epochs']},{params['learning_rate']},{(time.time() - file_start)},{abs_error.item()}\n")
         with open(f'./results/{filename.split(".")[0]}_results.csv', 'a') as f:
             f.write(",".join(best_complexity[0].flatten().astype(str)) + f",{best_complexity[1].item()}\n")
@@ -77,8 +81,11 @@ def tune_configuration_for(filename, budget, evaluate=False):
     if evaluate:
         real_best_complexity = np.min(data.labels)
         abs_error = np.abs(best_complexity[1] - real_best_complexity)
-        with open(f"./error_new/{filename.split('.')[0]}_error.csv", "a") as f:
-            f.write(f"{budget},{hyperparameters['size_eval']},{hyperparameters['hidden_size']},{hyperparameters['epochs']},{hyperparameters['learning_rate']},{total_time},{abs_error.item()}\n")
+        if not os.path.isfile(f"./error_new_new/{filename.split('.')[0]}_errors.csv"):
+            with open(f"./error_new_new/{filename.split('.')[0]}_errors.csv", "w") as f:
+                f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
+        with open(f"./error_new_new/{filename.split('.')[0]}_error.csv", "a") as f:
+            f.write(f"{budget},{hyperparameters['size_eval']},{hyperparameters['hidden_size']},{hyperparameters['epochs']},{hyperparameters['epochs_1batch']},{hyperparameters['learning_rate']},{total_time},{abs_error.item()}\n")
     with open(f'./results/{filename.split(".")[0]}_results.csv', 'a') as f:
         f.write(",".join(best_complexity[0].flatten().astype(str)) + f",{best_complexity[1].item()}\n")
     return best_complexity, total_time
@@ -102,5 +109,19 @@ def train_nn(test_set : Dataset, hidden_size, epochs, learning_rate):
     return model
 
 if __name__ == "__main__":
+    for count_i in range(0, 90):
+        main("datasets", tune_configuration, budget=100, size_eval=10+(10 * (count_i //10)), hidden_size=10, epochs=300, epochs_1batch = 30, learning_rate=0.01, evaluation_func=min)
     for count_i in range(0, 100):
-        main("datasets", tune_configuration, budget=50 + (10 * (count_i // 10)), size_eval=10, hidden_size=10, epochs=300, learning_rate=0.01, evaluation_func=min)
+        main("datasets", tune_configuration, budget=50+(10 * (count_i //10)), size_eval=10, hidden_size=10,
+                 epochs=300, epochs_1batch=30, learning_rate=0.01, evaluation_func=min)
+    for count_i in range(0, 100):
+        main("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10+(10 * (count_i //10)), epochs=300, epochs_1batch = 30, learning_rate=0.01, evaluation_func=min)
+    for count_i in range(0, 100):
+        main("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10,
+                 epochs=100+(100 * (count_i //20)), epochs_1batch=30, learning_rate=0.01, evaluation_func=min)
+    #0.1 * 10**(-(count_i // 10)/2)
+    for count_i in range(0, 100):
+        main("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10, epochs=300, epochs_1batch = 10+(10 * (count_i //10)), learning_rate=0.01, evaluation_func=min)
+    for count_i in range(0, 100):
+        main("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10,
+                 epochs=300, epochs_1batch=30, learning_rate=0.1 * 10**(-(count_i // 10)/2), evaluation_func=min)

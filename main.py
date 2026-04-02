@@ -8,7 +8,8 @@ conversion = {
     "Budget": "budget",
     "Evaluation size": "size_eval",
     "Hidden layer size": "hidden_size",
-    "Epochs": "epochs",
+    "Epochs for one batch" : "epochs_1batch",
+    "Epochs for evaluation batch": "epochs",
     "Learning rate": "learning_rate",
     "Time taken": "total_time",
     "Performance": "absolute_error"
@@ -101,9 +102,9 @@ class HyperparameterGraphSelect(tk.Frame):
         hyperparameter_frame.pack()
         hyperparameter_radiobuttons = []
         self.x_selected = tk.StringVar()
-        for hyperparameter in ["Budget", "Evaluation size", "Hidden layer size", "Epochs", "Learning rate"]:
+        for hyperparameter in ["Budget", "Evaluation size", "Hidden layer size", "Epochs for evaluation batch", "Learning rate", "Epochs for one batch"]:
             hyperparameter_radiobuttons.append(
-                tk.Radiobutton(hyperparameter_frame,text=hyperparameter, variable=self.x_selected, value=conversion[hyperparameter],
+                tk.Radiobutton(hyperparameter_frame, text=hyperparameter, variable=self.x_selected, value=conversion[hyperparameter],
                                indicatoron=False, width=20, padx=5, pady=5)
             )
             hyperparameter_radiobuttons[-1].pack(side="left")

@@ -33,8 +33,6 @@ def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
     hp_filter.remove(hyperparameter)
     hp_filter.remove("total_time")
     hp_filter.remove("absolute_error")
-    print(hyperparameter)
-    print(hp_filter)
     mask = generate_mask(data.data, data.title, budget, hp_filter)
     x = data.data[mask][:, data.title.index(hyperparameter)]
     y = data.data[mask][:, 5] if metric == "total_time" else data.labels[mask]
@@ -46,14 +44,10 @@ def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
     plt.show()
 
 def plot_results(program : str):
-    data: Dataset = load_csv(f"{program}_results", "results", title_row=False, dtype=float)
+    data: Dataset = load_csv(f"{program}_results", "results", title_row=True, dtype=float)
     y = data.labels
     x = range(0, data.data.shape[0])
     plt.plot(x, y)
     plt.ylabel("performance")
     plt.xlabel("iteration")
     plt.show()
-
-if __name__ == '__main__':
-    plot_error()
-    plot_time()
