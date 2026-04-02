@@ -28,7 +28,7 @@ def plot_error():
     plt.show()
 
 def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
-    data: Dataset = load_csv(f"{dataset}_error", "error_new", title_row=True, dtype=float)
+    data: Dataset = load_csv(f"{dataset}_error", "error_new_new", title_row=True, dtype=float)
     hp_filter = data.title.copy()
     hp_filter.remove(hyperparameter)
     hp_filter.remove("total_time")

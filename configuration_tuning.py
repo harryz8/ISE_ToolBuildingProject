@@ -63,11 +63,11 @@ def main(directory, search_function, **params):
               f"\tBest performance:\t{best_complexity[1].item()}")
         real_best_complexity = np.min(data.labels)
         abs_error = np.abs(best_complexity[1] - real_best_complexity)
-        if not os.path.isfile(f"./error_new_new/{filename.split('.')[0]}_errors.csv"):
-            with open(f"./error_new_new/{filename.split('.')[0]}_errors.csv", "w") as f:
+        if not os.path.isfile(f"./error_new_new/{filename.split('.')[0]}_error.csv"):
+            with open(f"./error_new_new/{filename.split('.')[0]}_error.csv", "w") as f:
                 f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
         with open(f"./error_new_new/{filename.split('.')[0]}_error.csv", "a") as f:
-            f.write(f"{params['budget']},{params['size_eval']},{params['hidden_size']},{params['epochs']},{params['learning_rate']},{(time.time() - file_start)},{abs_error.item()}\n")
+            f.write(f"{params['budget']},{params['size_eval']},{params['hidden_size']},{params['epochs']},{params['epochs_1batch']},{params['learning_rate']},{(time.time() - file_start)},{abs_error.item()}\n")
         with open(f'./results/{filename.split(".")[0]}_results.csv', 'a') as f:
             f.write(",".join(best_complexity[0].flatten().astype(str)) + f",{best_complexity[1].item()}\n")
         print(f"Absolute error: {abs_error.item():.4f}\n")
@@ -81,8 +81,8 @@ def tune_configuration_for(filename, budget, evaluate=False):
     if evaluate:
         real_best_complexity = np.min(data.labels)
         abs_error = np.abs(best_complexity[1] - real_best_complexity)
-        if not os.path.isfile(f"./error_new_new/{filename.split('.')[0]}_errors.csv"):
-            with open(f"./error_new_new/{filename.split('.')[0]}_errors.csv", "w") as f:
+        if not os.path.isfile(f"./error_new_new/{filename.split('.')[0]}_error.csv"):
+            with open(f"./error_new_new/{filename.split('.')[0]}_error.csv", "w") as f:
                 f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
         with open(f"./error_new_new/{filename.split('.')[0]}_error.csv", "a") as f:
             f.write(f"{budget},{hyperparameters['size_eval']},{hyperparameters['hidden_size']},{hyperparameters['epochs']},{hyperparameters['epochs_1batch']},{hyperparameters['learning_rate']},{total_time},{abs_error.item()}\n")
