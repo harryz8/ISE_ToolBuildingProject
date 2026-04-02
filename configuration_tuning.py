@@ -51,7 +51,7 @@ def measure(dataset, x):
 
 def main(directory, search_function, **params):
     start = time.time()
-    files = os.listdir(directory)
+    files = [file[:-4] for file in os.listdir(directory)]
     for filename in files:
         file_start = time.time()
         data: Dataset = load_csv(filename, directory, dtype=float)
@@ -84,14 +84,7 @@ def tune_configuration_for(filename, budget, evaluate=False):
     return best_complexity, total_time
 
 def train_nn(test_set : Dataset, hidden_size, epochs, learning_rate):
-    # test_set = data.copy(slice(0, np.floor(0.8*data.data.shape[1]).astype(int)))
-    # train_set = data.copy(slice(np.floor(0.8*data.data.shape[1]).astype(int), data.data.shape[0]))
-    # hidden_size = 10
     input_size = test_set.data.shape[1]
-    # max_row = np.max(data.data, axis=0, keepdims=True)
-
-    # epochs = 300
-    # learning_rate = 0.01
 
     model = NN.MLP(input_size, hidden_size)
     # print("Training...")
@@ -110,4 +103,4 @@ def train_nn(test_set : Dataset, hidden_size, epochs, learning_rate):
 
 if __name__ == "__main__":
     for count_i in range(0, 100):
-        main("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10 + (10 * (count_i // 10)), epochs=300, learning_rate=0.01, evaluation_func=min)
+        main("datasets", tune_configuration, budget=50 + (10 * (count_i // 10)), size_eval=10, hidden_size=10, epochs=300, learning_rate=0.01, evaluation_func=min)
