@@ -61,6 +61,8 @@ def main(directory, search_function, **params):
         print(f"System: {filename}\n" +
               f"\tBest solution:\t\t{best_complexity[0].squeeze().tolist()}\n" +
               f"\tBest performance:\t{best_complexity[1].item()}")
+        if np.sum(best_complexity[0] == np.nan) != 0 or np.sum(best_complexity[1] == np.nan) != 0:
+            raise Exception("NAN value detected")
         real_best_complexity = np.min(data.labels)
         abs_error = np.abs(best_complexity[1] - real_best_complexity)
         if not os.path.isfile(f"./error_new_new/{filename.split('.')[0]}_error.csv"):
@@ -68,6 +70,9 @@ def main(directory, search_function, **params):
                 f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
         with open(f"./error_new_new/{filename.split('.')[0]}_error.csv", "a") as f:
             f.write(f"{params['budget']},{params['size_eval']},{params['hidden_size']},{params['epochs']},{params['epochs_1batch']},{params['learning_rate']},{(time.time() - file_start)},{abs_error.item()}\n")
+        if not os.path.isfile(f"./results/{filename.split('.')[0]}_results.csv"):
+            with open(f"./results/{filename.split('.')[0]}_results.csv", "w") as f:
+                f.write(",".join(data.title) + "\n")
         with open(f'./results/{filename.split(".")[0]}_results.csv', 'a') as f:
             f.write(",".join(best_complexity[0].flatten().astype(str)) + f",{best_complexity[1].item()}\n")
         print(f"Absolute error: {abs_error.item():.4f}\n")
@@ -77,6 +82,8 @@ def tune_configuration_for(filename, budget, evaluate=False):
     file_start = time.time()
     data: Dataset = load_csv(filename, "datasets", dtype=float)
     best_complexity = tune_configuration(data.data.copy(), data, **hyperparameters, budget=budget, evaluation_func=min)
+    if np.sum(best_complexity[0] == np.nan) != 0 or np.sum(best_complexity[1] == np.nan) != 0:
+        raise Exception("NAN value detected")
     total_time = time.time() - file_start
     if evaluate:
         real_best_complexity = np.min(data.labels)
@@ -86,6 +93,9 @@ def tune_configuration_for(filename, budget, evaluate=False):
                 f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
         with open(f"./error_new_new/{filename.split('.')[0]}_error.csv", "a") as f:
             f.write(f"{budget},{hyperparameters['size_eval']},{hyperparameters['hidden_size']},{hyperparameters['epochs']},{hyperparameters['epochs_1batch']},{hyperparameters['learning_rate']},{total_time},{abs_error.item()}\n")
+    if not os.path.isfile(f"./results/{filename.split('.')[0]}_results.csv"):
+        with open(f"./results/{filename.split('.')[0]}_results.csv", "w") as f:
+            f.write(",".join(data.title)+"\n")
     with open(f'./results/{filename.split(".")[0]}_results.csv', 'a') as f:
         f.write(",".join(best_complexity[0].flatten().astype(str)) + f",{best_complexity[1].item()}\n")
     return best_complexity, total_time
@@ -108,7 +118,7 @@ def train_nn(test_set : Dataset, hidden_size, epochs, learning_rate):
 
     return model
 
-if __name__ == "__main__":
+def vary_hyperparameters():
     for count_i in range(0, 90):
         main("datasets", tune_configuration, budget=100, size_eval=10+(10 * (count_i //10)), hidden_size=10, epochs=300, epochs_1batch = 30, learning_rate=0.01, evaluation_func=min)
     for count_i in range(0, 100):
@@ -125,3 +135,10 @@ if __name__ == "__main__":
     for count_i in range(0, 100):
         main("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10,
                  epochs=300, epochs_1batch=30, learning_rate=0.1 * 10**(-(count_i // 10)/2), evaluation_func=min)
+
+if __name__ == "__main__":
+    option = int(input("Type 1 to vary hyperparameters or type 2 to get a clean set of results: "))
+    if option == 1:
+        vary_hyperparameters()
+    elif option == 2:
+        pass

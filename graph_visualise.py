@@ -12,21 +12,6 @@ def generate_mask(data : np.ndarray, titles, budget, hp_filter) -> np.ndarray:
         mask = mask & (data[:, titles.index(hp)] == hp_copy[hp])
     return mask
 
-def plot_error():
-    data: Dataset = load_csv("spear_error", "error_new", title_row=False, dtype=float)
-    data_0_100 = data.data[:, 0] == 100
-    data_1_100 = data.data[:, 1] == 10
-    data_2_100 = data.data[:, 2] == 10
-    data_3_100 = data.data[:, 3] == 300
-    data_4_100 = data.data[:, 4] == 0.01
-    x, y = (data.data[data_0_100 & data_4_100 & data_1_100 & data_3_100][:, 2],
-            data.labels[data_0_100 & data_4_100 & data_1_100 & data_3_100])
-    plt.ylabel("error")
-    plt.plot(x, y, 'ro')
-    b, a = np.polyfit(x, y, 1)
-    plt.plot(x, b * x + a)
-    plt.show()
-
 def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
     data: Dataset = load_csv(f"{dataset}_error", "error_new_new", title_row=True, dtype=float)
     hp_filter = data.title.copy()
