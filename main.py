@@ -12,7 +12,7 @@ conversion = {
     "Epochs for evaluation batch": "epochs",
     "Learning rate": "learning_rate",
     "Time taken": "total_time",
-    "Performance": "absolute_error"
+    "Mean Absolute Error": "absolute_error"
 }
 
 
@@ -115,7 +115,7 @@ class HyperparameterGraphSelect(tk.Frame):
         metric_frame.pack()
         metric_radiobuttons = []
         self.y_selected = tk.StringVar()
-        for metric in ["Time taken", "Performance"]:
+        for metric in ["Time taken", "Mean Absolute Error"]:
             metric_radiobuttons.append(
                 tk.Radiobutton(metric_frame, text=metric, variable=self.y_selected, value=conversion[metric],
                                indicatoron=False, width=20, padx=5, pady=5)

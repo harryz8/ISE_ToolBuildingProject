@@ -20,12 +20,26 @@ def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
     hp_filter.remove("absolute_error")
     mask = generate_mask(data.data, data.title, budget, hp_filter)
     x = data.data[mask][:, data.title.index(hyperparameter)]
-    y = data.data[mask][:, 5] if metric == "total_time" else data.labels[mask]
+    y = data.data[mask][:, -1] if metric == "total_time" else data.labels[mask]
+
+    categories = set(x)
+    mean_cat = []
+    for category in categories:
+        filter_cat = x == category
+        mean_cat.append(np.mean(y[filter_cat]))
+
     plt.ylabel(metric)
     plt.xlabel(hyperparameter)
-    plt.plot(x, y, 'ro')
-    b, a = np.polyfit(x, y, 1)
-    plt.plot(x, b * x + a)
+    plt.plot(x, y, 'rx', alpha=0.3, markersize=5, label="Raw test run results")
+
+    x_mean, y_mean = np.array(list(categories)), np.array(mean_cat)
+
+    plt.plot(x_mean, y_mean, 'bo', label=f"Mean {metric} over each {hyperparameter}")
+    b, a = np.polyfit(x_mean, y_mean, 1)
+    plt.plot(x_mean, b * x_mean + a, label="Linear trend line over the means")
+
+    plt.legend()
+
     plt.show()
 
 def plot_results(program : str):
