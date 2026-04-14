@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog, simpledialog
 import os
 from configuration_tuning import tune_configuration_for, clear_folder
 from graph_visualise import plot_results, plot_hyperparameters
@@ -78,7 +78,8 @@ class Window(tk.Tk):
     def show_results_plot(self):
         if self.chosen_dataset.get() == "":
             return
-        plot_results(self.chosen_dataset.get())
+        plot = plot_results(self.chosen_dataset.get())
+        plot.show()
 
     def show_hyperparameter_graph_select_frame(self):
         self.hyperparameter_graph_select_frame.grid(column=0, row=5)
@@ -104,8 +105,18 @@ class AllProgramActions(tk.LabelFrame):
         self.clear_results_button.pack(side="left")
 
         self.save_result_graphs = tk.Button(self, text="Save all result graphs", width=30,
-                                            command=lambda: print("coming soon"))
+                                            command=self.save_results_plot)
         self.save_result_graphs.pack(side="right")
+
+    @staticmethod
+    def save_results_plot():
+        directory = filedialog.askdirectory(title="Please select a folder to save into:")
+        result_files = os.listdir("./results/")
+        for file in result_files:
+            name = file.split("_")[0]
+            plot = plot_results(name)
+            plot.savefig(directory+"/"+name+"_results"+".png")
+            plot.clf()
 
 
 class ButtonFrame(tk.Frame):
@@ -180,8 +191,10 @@ class HyperparameterGraphSelect(tk.Frame):
             return
         if self.y_selected.get() == "":
             return
-        plot_hyperparameters(self.master.chosen_dataset.get(), self.master.budget.get(), self.x_selected.get(),
+        print(f"file: {self.master.chosen_dataset.get()}, hyperparameter: {self.x_selected.get()}, metric: {self.y_selected.get()}, budget: {self.master.budget.get()}")
+        plot = plot_hyperparameters(self.master.chosen_dataset.get(), self.master.budget.get(), self.x_selected.get(),
                              self.y_selected.get())
+        plot.show()
 
 
 class AllProgramActionsHyperparameter(tk.LabelFrame):
@@ -190,7 +203,7 @@ class AllProgramActionsHyperparameter(tk.LabelFrame):
         super().config(text="Actions over all programs and hyperparameters:")
 
         self.save_hyperparameter_graphs = tk.Button(self, text="Save all hyperparameter\ngraphs", width=20,
-                                              command=lambda: print("Coming soon"))
+                                                    command=self.save_hyperparameter_plot)
         self.save_hyperparameter_graphs.pack(side="left")
 
         self.measure_hyperparameters_button = tk.Button(self, text="Measure hyperparameters", width=20,
@@ -208,6 +221,24 @@ class AllProgramActionsHyperparameter(tk.LabelFrame):
         mhp_loading_window = measure_hyperparameter_performance.MeasureHyperparameterPerformance()
         mhp_loading_window.run()
         mhp_loading_window.close()
+
+    @staticmethod
+    def save_hyperparameter_plot():
+        budget = simpledialog.askinteger("Budget", "What budget?")
+        directory = filedialog.askdirectory(title="Please select a folder to save into:")
+        result_files = os.listdir("./error/")
+        hyperparameters = [settings_info[x]['csv_title'] for x in ["Budget", "Evaluation size", "Hidden layer size",
+                                                                       "Epochs for evaluation batch",
+                                                                       "Learning rate", "Epochs for one batch"]]
+        metrics = [settings_info[x]['csv_title'] for x in ["Time taken", "Mean Absolute Error"]]
+        for file in result_files:
+            for hyperparameter in hyperparameters:
+                for metric in metrics:
+                    name = file.split("_")[0]
+                    print(f"file: {name}, hyperparameter: {hyperparameter}, metric: {metric}, budget: {budget}")
+                    plot = plot_hyperparameters(name, str(budget), hyperparameter, metric)
+                    plot.savefig(directory+"/"+name+f"_{hyperparameter}_{metric}.png")
+                    plot.clf()
 
 
 #class based on https://stackoverflow.com/questions/3221956/how-do-i-display-tooltips-in-tkinter
