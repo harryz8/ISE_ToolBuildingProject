@@ -13,7 +13,7 @@ def generate_mask(data : np.ndarray, titles, budget, hp_filter) -> np.ndarray:
     return mask
 
 def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
-    data: Dataset = load_csv(f"{dataset}_error", "error_new_new", title_row=True, dtype=float)
+    data: Dataset = load_csv(f"{dataset}_error", "error", title_row=True, dtype=float)
     hp_filter = data.title.copy()
     hp_filter.remove(hyperparameter)
     hp_filter.remove("total_time")
@@ -28,6 +28,7 @@ def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
         filter_cat = x == category
         mean_cat.append(np.mean(y[filter_cat]))
 
+    plt.title(f"{dataset} {metric} when {hyperparameter} is varied")
     plt.ylabel(metric)
     plt.xlabel(hyperparameter)
     plt.plot(x, y, 'rx', alpha=0.3, markersize=5, label="Raw test run results")
@@ -47,6 +48,7 @@ def plot_results(program : str):
     y = data.labels
     x = range(0, data.data.shape[0])
     plt.plot(x, y)
+    plt.title(f"{program} Results")
     plt.ylabel("performance")
     plt.xlabel("iteration")
     plt.show()
