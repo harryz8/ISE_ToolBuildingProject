@@ -1,9 +1,12 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 import os
+from track_tuning import TrackTuning
 from configuration_tuning import tune_configuration_for, clear_folder
 from graph_visualise import plot_results, plot_hyperparameters
 import measure_hyperparameter_performance
+from dataset import Dataset, load_csv
+import time
 
 settings_info = {
     "Budget": {"csv_title": "budget", "description": "The maximum number of times the real performance can be measured."},
@@ -52,6 +55,9 @@ class Window(tk.Tk):
         budget_entry.grid(column=0, row=4)
         self.budget.set(100)
 
+        self.evaluation_option_frame = EvaluateCheckboxFrame(self)
+        self.evaluation_option_frame.grid(column=0, row=5)
+
         self.tuned_config_frame = tk.Text(self)
         self.tuned_config_frame.insert(tk.END, "Results:\n")
 
@@ -59,10 +65,10 @@ class Window(tk.Tk):
         self.back_button = tk.Button(self, command=self.hide_hyperparameter_graph_select_frame, text="↩ Back")
 
         self.button_frame = ButtonFrame(self)
-        self.button_frame.grid(column=0, row=6)
+        self.button_frame.grid(column=0, row=7)
 
         self.all_program_actions_frame = AllProgramActions(self)
-        self.all_program_actions_frame.grid(column=0, row=7)
+        self.all_program_actions_frame.grid(column=0, row=8)
 
     def invalid_budget(self, P):
         return str.isdigit(P) or P == ""
@@ -70,10 +76,22 @@ class Window(tk.Tk):
     def show_tuned_config(self):
         if self.chosen_dataset.get() == "":
             return
-        config, time_taken = tune_configuration_for(self.chosen_dataset.get(), budget=int(self.budget.get()), evaluate=True)
-        self.tuned_config_frame.insert(tk.END, f"\tConfiguration: {config[0]}\n\tPerformance: {config[1]}\n")
-        self.tuned_config_frame.insert(tk.END, f"\tTime elapsed: {time_taken}\n\n")
-        self.tuned_config_frame.grid(column=0, row=5)
+        start_time = time.time()
+        # config, time_taken = tune_configuration_for(self.chosen_dataset.get(), budget=int(self.budget.get()),
+        #                                             evaluate=bool(self.evaluation_option_frame.evaluate_option.get()))
+        tuning_window = TrackTuning(int(self.budget.get()))
+        kwargs = {
+            "filename": self.chosen_dataset.get(),
+            "budget": int(self.budget.get()),
+            "evaluate": bool(self.evaluation_option_frame.evaluate_option.get()),
+        }
+        tuning_window.run(tune_configuration_for, **kwargs)
+        results_data: Dataset = load_csv(f"{kwargs['filename']}_results", "results",
+                                         title_row=True, dtype=float)
+        self.tuned_config_frame.insert(tk.END, f"\tConfiguration: {results_data.data[-1, :]}\n\t"+
+                                               f"Performance: {results_data.labels[-1]}\n")
+        self.tuned_config_frame.insert(tk.END, f"\tTime elapsed: {time.time()-start_time}\n\n")
+        self.tuned_config_frame.grid(column=0, row=6)
 
     def show_results_plot(self):
         if self.chosen_dataset.get() == "":
@@ -82,17 +100,34 @@ class Window(tk.Tk):
         plot.show()
 
     def show_hyperparameter_graph_select_frame(self):
+        self.evaluation_option_frame.grid_forget()
         self.hyperparameter_graph_select_frame.grid(column=0, row=5)
         self.button_frame.grid_forget()
         self.back_button.grid(column=0, row=6)
         self.all_program_actions_frame.grid_forget()
         self.heading_title.config(text="Select graph to view:")
+        self.tuned_config_frame.grid_forget()
 
     def hide_hyperparameter_graph_select_frame(self):
         self.hyperparameter_graph_select_frame.grid_forget()
-        self.button_frame.grid(column=0, row=6)
-        self.all_program_actions_frame.grid(column=0, row=7)
+        self.button_frame.grid(column=0, row=7)
+        self.all_program_actions_frame.grid(column=0, row=8)
+        self.evaluation_option_frame.grid(column=0, row=5)
         self.heading_title.config(text="Configuration Tuning")
+        self.back_button.grid_forget()
+
+
+class EvaluateCheckboxFrame(tk.Frame):
+    def __init__(self, master : Window):
+        super().__init__(master)
+        self.master = master
+        self.evaluate_option = tk.BooleanVar()
+
+        self.evaluate_checkbox_lb = tk.Label(self, text="Add result to hyperparameter evaluation?")
+        self.evaluate_checkbox_lb.pack(side="left")
+
+        self.evaluate_checkbox = ttk.Checkbutton(self, variable=self.evaluate_option)
+        self.evaluate_checkbox.pack(side="right")
 
 
 class AllProgramActions(tk.LabelFrame):

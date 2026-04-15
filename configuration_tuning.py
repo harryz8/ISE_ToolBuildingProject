@@ -12,8 +12,12 @@ hyperparameters = {
     "epochs_1batch": 30,
     "learning_rate": 0.01
 }
+tune_time = 0
+tc_running_flag = False
 
 def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs, learning_rate, epochs_1batch, evaluation_func):
+    global tune_time
+    tune_time = 0
     max_row = np.max(dataset.data, axis=0, keepdims=True)
     max_label = np.max(dataset.labels)
     np.random.shuffle(configs)
@@ -39,6 +43,7 @@ def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs,
         eval_configs_list.append(acquired_point)
         del remainder_configs[max_point[0]]
         budget -= 1
+        tune_time += 1
     min_ = np.inf
     final = []
     for value in eval_configs_list:
@@ -51,13 +56,13 @@ def measure(dataset, x):
     find_x = np.all(dataset.data == x, axis=1)
     return dataset.data[find_x], dataset.labels[find_x]
 
-def tune_configuration_all_programs(directory, search_function, **params):
+def tune_configuration_all_programs(directory, search_function, **kwargs):
     start = time.time()
     files = [file[:-4] for file in os.listdir(directory)]
     for filename in files:
         file_start = time.time()
         data: Dataset = load_csv(filename, directory, dtype=float)
-        best_complexity = search_function(data.data.copy(), data, **params)
+        best_complexity = search_function(data.data.copy(), data, **kwargs)
         print(f"System: {filename}\n" +
               f"\tBest solution:\t\t{best_complexity[0].squeeze().tolist()}\n" +
               f"\tBest performance:\t{best_complexity[1].item()}")
@@ -69,7 +74,7 @@ def tune_configuration_all_programs(directory, search_function, **params):
             with open(f"./error/{filename.split('.')[0]}_error.csv", "w") as f:
                 f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
         with open(f"./error/{filename.split('.')[0]}_error.csv", "a") as f:
-            f.write(f"{params['budget']},{params['size_eval']},{params['hidden_size']},{params['epochs']},{params['epochs_1batch']},{params['learning_rate']},{(time.time() - file_start)},{abs_error.item()}\n")
+            f.write(f"{kwargs['budget']},{kwargs['size_eval']},{kwargs['hidden_size']},{kwargs['epochs']},{kwargs['epochs_1batch']},{kwargs['learning_rate']},{(time.time() - file_start)},{abs_error.item()}\n")
         if not os.path.isfile(f"./results/{filename.split('.')[0]}_results.csv"):
             with open(f"./results/{filename.split('.')[0]}_results.csv", "w") as f:
                 f.write(",".join(data.title) + "\n")
@@ -79,10 +84,13 @@ def tune_configuration_all_programs(directory, search_function, **params):
     print(f"Total time taken: {(time.time() - start):.2f}s")
 
 def tune_configuration_for(filename, budget, evaluate=False):
+    global tc_running_flag
+    tc_running_flag = True
     file_start = time.time()
     data: Dataset = load_csv(filename, "datasets", dtype=float)
     best_complexity = tune_configuration(data.data.copy(), data, **hyperparameters, budget=budget, evaluation_func=min)
     if np.sum(best_complexity[0] == np.nan) != 0 or np.sum(best_complexity[1] == np.nan) != 0:
+        tc_running_flag = False
         raise Exception("NAN value detected")
     total_time = time.time() - file_start
     if evaluate:
@@ -98,13 +106,16 @@ def tune_configuration_for(filename, budget, evaluate=False):
             f.write(",".join(data.title)+"\n")
     with open(f'./results/{filename.split(".")[0]}_results.csv', 'a') as f:
         f.write(",".join(best_complexity[0].flatten().astype(str)) + f",{best_complexity[1].item()}\n")
-    return best_complexity, total_time
+    tc_running_flag = False
+    print(f"best_complexity: {best_complexity}")
+    print(f"total_time: {total_time}")
+    # return best_complexity, total_time
 
 def train_nn(test_set : Dataset, hidden_size, epochs, learning_rate):
+    global tune_time
     input_size = test_set.data.shape[1]
 
     model = NN.MLP(input_size, hidden_size)
-    # print("Training...")
 
     for epoch in range(epochs):
         test_set.apply(np.random.shuffle)
@@ -115,6 +126,7 @@ def train_nn(test_set : Dataset, hidden_size, epochs, learning_rate):
         update_weights(model, learning_rate)
         # if (epoch % 100 == 0):
         #     print(f"\tloss: {loss}")
+        tune_time += 1
 
     return model
 
