@@ -5,9 +5,9 @@ import threading
 import time
 
 # inspired by https://www.askpython.com/python-modules/tkinter/tkinter-spinbox-and-progressbar-widgets
-class TrackTuning(tk.Tk):
-    def __init__(self, budget):
-        super().__init__()
+class TrackTuning(tk.Toplevel):
+    def __init__(self, master, budget):
+        super().__init__(master)
         super().title("Please wait...")
         super().protocol("WM_DELETE_WINDOW", self.close)
         super().config(width=400)

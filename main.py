@@ -77,9 +77,7 @@ class Window(tk.Tk):
         if self.chosen_dataset.get() == "":
             return
         start_time = time.time()
-        # config, time_taken = tune_configuration_for(self.chosen_dataset.get(), budget=int(self.budget.get()),
-        #                                             evaluate=bool(self.evaluation_option_frame.evaluate_option.get()))
-        tuning_window = TrackTuning(int(self.budget.get()))
+        tuning_window = TrackTuning(self, int(self.budget.get()))
         kwargs = {
             "filename": self.chosen_dataset.get(),
             "budget": int(self.budget.get()),
@@ -88,8 +86,14 @@ class Window(tk.Tk):
         tuning_window.run(tune_configuration_for, **kwargs)
         results_data: Dataset = load_csv(f"{kwargs['filename']}_results", "results",
                                          title_row=True, dtype=float)
+        self.tuned_config_frame.delete("1.0", tk.END)
+        self.tuned_config_frame.insert(tk.END, "Results:\n")
         self.tuned_config_frame.insert(tk.END, f"\tConfiguration: {results_data.data[-1, :]}\n\t"+
                                                f"Performance: {results_data.labels[-1]}\n")
+        if bool(self.evaluation_option_frame.evaluate_option.get()):
+            error_data: Dataset = load_csv(f"{kwargs['filename']}_error", "error",
+                                           title_row=True, dtype=float)
+            self.tuned_config_frame.insert(tk.END, f"\tAbsolute Error: {error_data.labels[-1]}\n")
         self.tuned_config_frame.insert(tk.END, f"\tTime elapsed: {time.time()-start_time}\n\n")
         self.tuned_config_frame.grid(column=0, row=6)
         tuning_window.close()
@@ -124,7 +128,7 @@ class EvaluateCheckboxFrame(tk.Frame):
         self.master = master
         self.evaluate_option = tk.BooleanVar()
 
-        self.evaluate_checkbox_lb = tk.Label(self, text="Add result to hyperparameter evaluation?")
+        self.evaluate_checkbox_lb = tk.Label(self, text="Calculate and log absolute error (for testing only)")
         self.evaluate_checkbox_lb.pack(side="left")
 
         self.evaluate_checkbox = ttk.Checkbutton(self, variable=self.evaluate_option)
@@ -242,10 +246,10 @@ class AllProgramActionsHyperparameter(tk.LabelFrame):
                                                     command=self.save_hyperparameter_plot)
         self.save_hyperparameter_graphs.pack(side="left")
 
-        self.measure_hyperparameters_button = tk.Button(self, text="Measure hyperparameters", width=20,
+        self.measure_hyperparameters_button = tk.Button(self, text="Measure hyperparameters\n(for testing only)", width=20,
                                                         command=self.start_measure_hyperparameter_performance)
         self.measure_hyperparameters_button.pack(side="left")
-        ToolTip(self, self.measure_hyperparameters_button, "Warning: this can take hours", depth=2)
+        ToolTip(self, self.measure_hyperparameters_button, "Warning: this can take hours; requires brute searching the dataset", depth=2)
 
         self.clear_hyperparameter_measurements_button = tk.Button(self, text="Clear all hyperparameter\nmeasurements",
                                                                   width=20,

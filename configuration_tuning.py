@@ -15,7 +15,8 @@ hyperparameters = {
 tune_time = 0
 tc_running_flag = False
 
-def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs, learning_rate, epochs_1batch, evaluation_func):
+def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs, learning_rate, epochs_1batch,
+                       evaluation_func):
     global tune_time
     tune_time = 0
     max_row = np.max(dataset.data, axis=0, keepdims=True)
@@ -37,7 +38,8 @@ def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs,
         max_point = evaluation_func(predict_xs, key=lambda x: x[1])
         acquired_point = measure(dataset, remainder_configs[max_point[0]])
         for epoch in range(epochs_1batch):
-            model.backward(np.array(remainder_configs[max_point[0]]) / max_row, acquired_point[1] / max_label, max_point[1])
+            model.backward(np.array(remainder_configs[max_point[0]]) / max_row, acquired_point[1] / max_label,
+                           max_point[1])
             update_weights(model, learning_rate=learning_rate)
             tune_time += 1
         # print(f"flash loss: {((acquired_point[1] / max_label - max_point[1])**2)}")
@@ -74,7 +76,9 @@ def tune_configuration_all_programs(directory, search_function, **kwargs):
             with open(f"./error/{filename.split('.')[0]}_error.csv", "w") as f:
                 f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
         with open(f"./error/{filename.split('.')[0]}_error.csv", "a") as f:
-            f.write(f"{kwargs['budget']},{kwargs['size_eval']},{kwargs['hidden_size']},{kwargs['epochs']},{kwargs['epochs_1batch']},{kwargs['learning_rate']},{(time.time() - file_start)},{abs_error.item()}\n")
+            f.write(f"{kwargs['budget']},{kwargs['size_eval']},{kwargs['hidden_size']},{kwargs['epochs']},"+
+                    f"{kwargs['epochs_1batch']},{kwargs['learning_rate']},{(time.time() - file_start)},"+
+                    f"{abs_error.item()}\n")
         if not os.path.isfile(f"./results/{filename.split('.')[0]}_results.csv"):
             with open(f"./results/{filename.split('.')[0]}_results.csv", "w") as f:
                 f.write(",".join(data.title) + "\n")
@@ -100,7 +104,9 @@ def tune_configuration_for(filename, budget, evaluate=False):
             with open(f"./error/{filename.split('.')[0]}_error.csv", "w") as f:
                 f.write("budget,size_eval,hidden_size,epochs,epochs_1batch,learning_rate,total_time,absolute_error\n")
         with open(f"./error/{filename.split('.')[0]}_error.csv", "a") as f:
-            f.write(f"{budget},{hyperparameters['size_eval']},{hyperparameters['hidden_size']},{hyperparameters['epochs']},{hyperparameters['epochs_1batch']},{hyperparameters['learning_rate']},{total_time},{abs_error.item()}\n")
+            f.write(f"{budget},{hyperparameters['size_eval']},{hyperparameters['hidden_size']},"+
+                    f"{hyperparameters['epochs']},{hyperparameters['epochs_1batch']},"+
+                    f"{hyperparameters['learning_rate']},{total_time},{abs_error.item()}\n")
     if not os.path.isfile(f"./results/{filename.split('.')[0]}_results.csv"):
         with open(f"./results/{filename.split('.')[0]}_results.csv", "w") as f:
             f.write(",".join(data.title)+"\n")
@@ -129,21 +135,30 @@ def train_nn(test_set : Dataset, hidden_size, epochs, learning_rate):
 
 def vary_hyperparameters():
     for count_i in range(0, 90):
-        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10 + (10 * (count_i // 10)), hidden_size=10, epochs=300, epochs_1batch = 30, learning_rate=0.01, evaluation_func=min)
+        tune_configuration_all_programs("datasets", tune_configuration, budget=100,
+                                        size_eval=10 + (10 * (count_i // 10)), hidden_size=10, epochs=300,
+                                        epochs_1batch = 30, learning_rate=0.01, evaluation_func=min)
     for count_i in range(0, 100):
-        tune_configuration_all_programs("datasets", tune_configuration, budget=50 + (10 * (count_i // 10)), size_eval=10, hidden_size=10,
+        tune_configuration_all_programs("datasets", tune_configuration, budget=50 + (10 * (count_i // 10)),
+                                        size_eval=10, hidden_size=10,
                                         epochs=300, epochs_1batch=30, learning_rate=0.01, evaluation_func=min)
     for count_i in range(0, 100):
-        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10 + (10 * (count_i // 10)), epochs=300, epochs_1batch = 30, learning_rate=0.01, evaluation_func=min)
+        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10,
+                                        hidden_size=10 + (10 * (count_i // 10)), epochs=300, epochs_1batch = 30,
+                                        learning_rate=0.01, evaluation_func=min)
     for count_i in range(0, 100):
-        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10,
-                                        epochs=100+(100 * (count_i //20)), epochs_1batch=30, learning_rate=0.01, evaluation_func=min)
+        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10,
+                                        hidden_size=10, epochs=100+(100 * (count_i //20)), epochs_1batch=30,
+                                        learning_rate=0.01, evaluation_func=min)
     #0.1 * 10**(-(count_i // 10)/2)
     for count_i in range(0, 100):
-        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10, epochs=300, epochs_1batch =10 + (10 * (count_i // 10)), learning_rate=0.01, evaluation_func=min)
+        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10,
+                                        hidden_size=10, epochs=300, epochs_1batch=10 + (10 * (count_i // 10)),
+                                        learning_rate=0.01, evaluation_func=min)
     for count_i in range(0, 100):
-        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10, hidden_size=10,
-                                        epochs=300, epochs_1batch=30, learning_rate=0.1 * 10**(-(count_i // 10)/2), evaluation_func=min)
+        tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10,
+                                        hidden_size=10, epochs=300, epochs_1batch=30,
+                                        learning_rate=0.1 * 10**(-(count_i // 10)/2), evaluation_func=min)
 
 def clear_folder(folder):
     contents = os.listdir(f"./{folder}/")
@@ -157,4 +172,5 @@ if __name__ == "__main__":
     elif option == 2:
         budget = int(input("Type how much budget you want to give: "))
         for count_i in range(0, 100):
-            tune_configuration_all_programs("datasets", tune_configuration, budget=budget, evaluation_func=min, **hyperparameters)
+            tune_configuration_all_programs("datasets", tune_configuration, budget=budget, evaluation_func=min,
+                                            **hyperparameters)
