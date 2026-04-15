@@ -39,11 +39,11 @@ def tune_configuration(configs, dataset, budget, size_eval, hidden_size, epochs,
         for epoch in range(epochs_1batch):
             model.backward(np.array(remainder_configs[max_point[0]]) / max_row, acquired_point[1] / max_label, max_point[1])
             update_weights(model, learning_rate=learning_rate)
+            tune_time += 1
         # print(f"flash loss: {((acquired_point[1] / max_label - max_point[1])**2)}")
         eval_configs_list.append(acquired_point)
         del remainder_configs[max_point[0]]
         budget -= 1
-        tune_time += 1
     min_ = np.inf
     final = []
     for value in eval_configs_list:
@@ -107,9 +107,6 @@ def tune_configuration_for(filename, budget, evaluate=False):
     with open(f'./results/{filename.split(".")[0]}_results.csv', 'a') as f:
         f.write(",".join(best_complexity[0].flatten().astype(str)) + f",{best_complexity[1].item()}\n")
     tc_running_flag = False
-    print(f"best_complexity: {best_complexity}")
-    print(f"total_time: {total_time}")
-    # return best_complexity, total_time
 
 def train_nn(test_set : Dataset, hidden_size, epochs, learning_rate):
     global tune_time
