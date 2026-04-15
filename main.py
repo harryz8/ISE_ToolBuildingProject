@@ -92,6 +92,7 @@ class Window(tk.Tk):
                                                f"Performance: {results_data.labels[-1]}\n")
         self.tuned_config_frame.insert(tk.END, f"\tTime elapsed: {time.time()-start_time}\n\n")
         self.tuned_config_frame.grid(column=0, row=6)
+        tuning_window.close()
 
     def show_results_plot(self):
         if self.chosen_dataset.get() == "":
