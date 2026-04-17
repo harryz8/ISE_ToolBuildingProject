@@ -10,7 +10,6 @@ def generate_mask(data : np.ndarray, titles, budget, hp_filter) -> np.ndarray:
     hp_filter.pop(0)
     for hp in hp_filter:
         mask = mask & (data[:, titles.index(hp)] == hp_copy[hp])
-        print(mask)
     return mask
 
 def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
@@ -20,7 +19,6 @@ def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
     hp_filter.remove("total_time")
     hp_filter.remove("absolute_error")
     mask = generate_mask(data.data, data.title, budget, hp_filter)
-    print(mask)
     x = data.data[mask][:, data.title.index(hyperparameter)]
     y = data.data[mask][:, -1] if metric == "total_time" else data.labels[mask]
 
