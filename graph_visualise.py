@@ -23,8 +23,10 @@ def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
     y = data.data[mask][:, -1] if metric == "total_time" else data.labels[mask]
 
     categories = set(x)
+    cats = []
     mean_cat = []
     for category in categories:
+        cats.append(category)
         filter_cat = x == category
         mean_cat.append(np.mean(y[filter_cat]))
 
@@ -33,7 +35,7 @@ def plot_hyperparameters(dataset : str, budget, hyperparameter, metric):
     plt.xlabel(hyperparameter)
     plt.plot(x, y, 'rx', alpha=0.3, markersize=5, label="Raw test run results")
 
-    x_mean, y_mean = np.array(list(categories)), np.array(mean_cat)
+    x_mean, y_mean = np.array(cats), np.array(mean_cat)
 
     plt.plot(x_mean, y_mean, 'bo', label=f"Mean {metric} over each {hyperparameter}")
     b, a = np.polyfit(x_mean, y_mean, 1)
