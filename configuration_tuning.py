@@ -6,11 +6,11 @@ from dataset import Dataset, load_csv
 import time
 
 hyperparameters = {
-    "size_eval": 10,
+    "size_eval": 30,
     "hidden_size": 10,
-    "epochs": 300,
-    "epochs_1batch": 30,
-    "learning_rate": 0.01
+    "epochs": 400,
+    "epochs_1batch": 90,
+    "learning_rate": 0.003
 }
 tune_time = 0
 tc_running_flag = False

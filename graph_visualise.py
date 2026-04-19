@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from dataset import Dataset, load_csv
@@ -48,8 +50,26 @@ def plot_results(program : str):
     data: Dataset = load_csv(f"{program}_results", "results", title_row=True, dtype=float)
     y = data.labels
     x = range(0, data.data.shape[0])
-    plt.plot(x, y)
+    plt.plot(x, y, label="Performance")
+    best_performance = np.min(y)
+    best_index = np.nonzero(y == best_performance)[0][0]
+    plt.plot(best_index, best_performance, marker="*", color="red", markersize=12, label="Best Point")
     plt.title(f"{program} Results")
     plt.ylabel("performance")
     plt.xlabel("iteration")
+    plt.legend()
     return plt
+
+def plot_result_histograms():
+    for program_full in os.listdir("datasets"):
+        program = program_full[:-4]
+        data: Dataset = load_csv(f"{program}_results", "results", title_row=True, dtype=float)
+        plt.hist(data.labels, bins=10)
+        plt.title(f"Performance Histogram for {program}")
+        plt.ylabel("frequency")
+        plt.xlabel("performance")
+        plt.savefig(f"graphs/{program}_histogram.png")
+        plt.clf()
+
+if __name__ == "__main__":
+    plot_result_histograms()
