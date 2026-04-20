@@ -3,6 +3,15 @@ from tkinter import ttk
 from configuration_tuning import tune_configuration_all_programs, tune_configuration
 
 
+hyperparameters = {
+    "size_eval": 10,
+    "hidden_size": 10,
+    "epochs": 300,
+    "epochs_1batch": 30,
+    "learning_rate": 0.01
+}
+budget = 100
+
 # inspired by https://www.askpython.com/python-modules/tkinter/tkinter-spinbox-and-progressbar-widgets
 class MeasureHyperparameterPerformance(tk.Tk):
     running = False
@@ -26,42 +35,42 @@ class MeasureHyperparameterPerformance(tk.Tk):
 
     def run(self):
         self.running = True
-        # for count_i in range(0, 90):
-        #     tune_configuration_all_programs("datasets", tune_configuration, budget=100,
-        #                                     size_eval=10 + (10 * (count_i // 10)), hidden_size=10, epochs=300,
-        #                                     epochs_1batch=30, learning_rate=0.01, evaluation_func=min)
-        #     self.progress_bar['value'] += 1
-        #     self.update()
-        for count_i in range(0, 100):
-            tune_configuration_all_programs("datasets", tune_configuration, budget=50 + (10 * (count_i // 10)),
-                                            size_eval=30, hidden_size=10, epochs=400, epochs_1batch=90,
-                                            learning_rate=0.003, evaluation_func=min)
+        for count_i in range(0, 90):
+            tune_configuration_all_programs("datasets", tune_configuration, budget=budget,
+                                            size_eval=10 + (10 * (count_i // 10)), hidden_size=hyperparameters["hidden_size"], epochs=hyperparameters["epochs"],
+                                            epochs_1batch=hyperparameters["epochs_1batch"], learning_rate=hyperparameters["learning_rate"], evaluation_func=min)
             self.progress_bar['value'] += 1
             self.update()
-        # for count_i in range(0, 100):
-        #     tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10,
-        #                                     hidden_size=10 + (10 * (count_i // 10)), epochs=300, epochs_1batch=30,
-        #                                     learning_rate=0.01, evaluation_func=min)
-        #     self.progress_bar['value'] += 1
-        #     self.update()
-        # for count_i in range(0, 100):
-        #     tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10,
-        #                                     hidden_size=10, epochs=100 + (100 * (count_i // 20)), epochs_1batch=30,
-        #                                     learning_rate=0.01, evaluation_func=min)
-        #     self.progress_bar['value'] += 1
-        #     self.update()
-        # for count_i in range(0, 100):
-        #     tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10,
-        #                                     hidden_size=10, epochs=300, epochs_1batch=10 + (10 * (count_i // 10)),
-        #                                     learning_rate=0.01, evaluation_func=min)
-        #     self.progress_bar['value'] += 1
-        #     self.update()
-        # for count_i in range(0, 100):
-        #     tune_configuration_all_programs("datasets", tune_configuration, budget=100, size_eval=10,
-        #                                     hidden_size=10, epochs=300, epochs_1batch=30,
-        #                                     learning_rate=0.1 * 10 ** (-(count_i // 10) / 2), evaluation_func=min)
-        #     self.progress_bar['value'] += 1
-        #     self.update()
+        for count_i in range(0, 100):
+            tune_configuration_all_programs("datasets", tune_configuration, budget=50 + (10 * (count_i // 10)),
+                                            size_eval=hyperparameters["size_eval"], hidden_size=hyperparameters["hidden_size"], epochs=hyperparameters["epochs"], epochs_1batch=hyperparameters["epochs_1batch"],
+                                            learning_rate=hyperparameters["learning_rate"], evaluation_func=min)
+            self.progress_bar['value'] += 1
+            self.update()
+        for count_i in range(0, 100):
+            tune_configuration_all_programs("datasets", tune_configuration, budget=budget, size_eval=hyperparameters["size_eval"],
+                                            hidden_size=10 + (10 * (count_i // 10)), epochs=hyperparameters["epochs"], epochs_1batch=hyperparameters["epochs_1batch"],
+                                            learning_rate=hyperparameters["learning_rate"], evaluation_func=min)
+            self.progress_bar['value'] += 1
+            self.update()
+        for count_i in range(0, 100):
+            tune_configuration_all_programs("datasets", tune_configuration, budget=budget, size_eval=hyperparameters["size_eval"],
+                                            hidden_size=hyperparameters["hidden_size"], epochs=100 + (100 * (count_i // 20)), epochs_1batch=hyperparameters["epochs_1batch"],
+                                            learning_rate=hyperparameters["learning_rate"], evaluation_func=min)
+            self.progress_bar['value'] += 1
+            self.update()
+        for count_i in range(0, 100):
+            tune_configuration_all_programs("datasets", tune_configuration, budget=budget, size_eval=hyperparameters["size_eval"],
+                                            hidden_size=hyperparameters["hidden_size"], epochs=hyperparameters["epochs"], epochs_1batch=10 + (10 * (count_i // 10)),
+                                            learning_rate=hyperparameters["learning_rate"], evaluation_func=min)
+            self.progress_bar['value'] += 1
+            self.update()
+        for count_i in range(0, 100):
+            tune_configuration_all_programs("datasets", tune_configuration, budget=budget, size_eval=hyperparameters["size_eval"],
+                                            hidden_size=hyperparameters["hidden_size"], epochs=hyperparameters["epochs"], epochs_1batch=hyperparameters["epochs_1batch"],
+                                            learning_rate=0.1 * 10 ** (-(count_i // 10) / 2), evaluation_func=min)
+            self.progress_bar['value'] += 1
+            self.update()
         self.running = False
 
     def close(self):
