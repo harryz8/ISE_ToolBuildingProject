@@ -36,12 +36,14 @@ for param in range(config_params):
         total_params *= len(option_list)
     else:
         raise Exception("Invalid entry. Please try again.")
+objective = str(input("What is your objective called: ")).lower()
+worst_value = float(input("What is the value that is worse than any other possible value that your objective could return? I.e. you could use the current algorithm's value for that an unacceptably bad value which when seen as an output lets you know that this method is not feasible for your use-case: "))
 
 #generate dataset
 if os.path.isfile(f"./datasets/{program_name}.csv"):
     raise Exception(f"File {program_name} already exists. Please try again.")
 with open(f"./datasets/{program_name}.csv", "w") as f:
-    f.write(",".join(titles)+",performance\n")
+    f.write(",".join(titles)+f",{objective}\n")
     counter = total_params
     all_para = [x for x in range(config_params)]
     while counter > 0:
@@ -52,6 +54,6 @@ with open(f"./datasets/{program_name}.csv", "w") as f:
             divi = divi % len(params[param])
             f.write(str(params[param][divi])+",")
         f.write(str(params[config_params-1][counter % len(params[config_params-1])]))
-        f.write(","+str(float("inf")))
+        f.write(","+str(worst_value))
         f.write("\n")
         counter -= 1
