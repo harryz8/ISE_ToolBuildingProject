@@ -166,11 +166,7 @@ def clear_folder(folder):
         os.remove(f"./{folder}/{file}")
 
 if __name__ == "__main__":
-    option = int(input("Type 1 to vary hyperparameters or type 2 to get a set of 100 results per program: "))
-    if option == 1:
-        vary_hyperparameters()
-    elif option == 2:
-        budget = int(input("Type how much budget you want to give: "))
-        for count_i in range(0, 100):
-            tune_configuration_all_programs("datasets", tune_configuration, budget=budget, evaluation_func=min,
-                                            **hyperparameters)
+    budget = int(input("Type how much budget you want to give: "))
+    for count_i in range(0, 100):
+        tune_configuration_all_programs("datasets", tune_configuration, budget=budget, evaluation_func=min,
+                                        **hyperparameters)
