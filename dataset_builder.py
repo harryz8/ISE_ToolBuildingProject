@@ -49,10 +49,7 @@ with open(f"./datasets/{program_name}.csv", "w") as f:
             divi = counter
             for para in all_para[param+1:]:
                 divi = divi // len(params[para])
-            print(divi)
             divi = divi % len(params[param])
-            print(divi)
-            print("a" if divi == 0 else "s")
             f.write(str(params[param][divi])+",")
         f.write(str(params[config_params-1][counter % len(params[config_params-1])]))
         f.write(","+str(float("inf")))
