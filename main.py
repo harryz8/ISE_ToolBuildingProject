@@ -1,101 +1,341 @@
-import numpy as np
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog, simpledialog
 import os
-import NN
-from NN import update_weights
+from track_tuning import TrackTuning
+from configuration_tuning import tune_configuration_for, clear_folder
+from graph_visualise import plot_results, plot_hyperparameters
+import measure_hyperparameter_performance
 from dataset import Dataset, load_csv
 import time
 
-def knn_factory(k, training : Dataset, distance_func):
-    def knn(x_new):
-        dist_vector = distance_func(training.data, x_new)
-        combo_vec = np.c_[(np.c_[training.data, training.labels]), dist_vector]
-        combo_vec = combo_vec[combo_vec[:, -1].argsort()]
-        closest = combo_vec[:k, :]
-        return np.sum(closest[:, -2]) / closest.shape[0]
+settings_info = {
+    "Budget": {"csv_title": "budget", "description": "The maximum number of times the real performance can be measured."},
+    "Evaluation size": {"csv_title": "size_eval", "description": "This refers to the amount of the budget that is used to create labelled training data for training the initial model."},
+    "Hidden layer size": {"csv_title": "hidden_size", "description": "This refers to the number of artificial neurons in the hidden layer of the neural network (the layer between the input and output layers)."},
+    "Epochs for one batch": {"csv_title": "epochs_1batch", "description": "This refers to the number of times that the backwards pass is run and the weights are updated when updating the model with a new piece of labelled data."},
+    "Epochs for evaluation batch": {"csv_title": "epochs", "description": "This refers to the number of times that the backwards pass is run and the weights are updated when training the initial model."},
+    "Learning rate": {"csv_title": "learning_rate", "description": "This hyper-parameter controls how quickly the neural network model learns from the error of the previous pass"},
+    "Time taken": {"csv_title": "total_time", "description": ""},
+    "Mean Absolute Error": {"csv_title": "absolute_error", "description": ""}
+     }
 
-    return knn
+def clear_folder_with_feedback(folder):
+    sure = messagebox.askyesno("Are you sure?", "Are you sure you want to delete all " +
+                               f"{'results' if folder == 'results' else 'hyperparameter measurements'}?")
+    if sure:
+        clear_folder(folder)
+        messagebox.showinfo("Done", "All " +
+                            f"{'results' if folder == 'results' else 'hyperparameter measurements'} " +
+                            "successfully deleted.")
+    else:
+        messagebox.showinfo("Cancelled", "Deletion action cancelled")
 
-def vector_euclidean_distance(vector1, new_x):
-    minus = vector1 - new_x
-    square = np.square(minus)
-    sum_vec = np.sum(square, axis=1)
-    sqrt_vec = np.sqrt(sum_vec)
-    return sqrt_vec
 
-def conn(configs, dataset, budget, k, size_eval, evaluation_func):
-    np.random.shuffle(configs)
-    eval_configs_list = [measure(dataset, x) for x in configs[:size_eval]]
-    remainder_configs = configs[size_eval:].tolist()
-    while budget > 0:
-        part1 = [i[1] for i in eval_configs_list]
-        part2 = [j[0] for j in eval_configs_list]
-        eval_configs : Dataset = Dataset(np.array(part1).squeeze(), np.array(part2).squeeze())
-        model = knn_factory(k, eval_configs, vector_euclidean_distance)
-        predict_xs = []
-        for l in range(0, len(remainder_configs)):
-            predict_xs.append((l, model(np.array(remainder_configs[l]))))
-        max_point = evaluation_func(predict_xs, key=lambda x: x[1])
-        acquired_point = measure(dataset, remainder_configs[max_point[0]])
-        eval_configs_list.append(acquired_point)
-        del remainder_configs[max_point[0]]
-        budget -= 1
-    min_ = np.inf
-    final = []
-    for value in eval_configs_list:
-        if evaluation_func(value[1].item(), min_) == value[1].item():
-            min_ = value[1].item()
-            final = value
-    return final
+class Window(tk.Tk):
+    def __init__(self):
+        super().__init__()
 
-def measure(dataset, x):
-    find_x = np.all(dataset.data == x, axis=1)
-    return dataset.data[find_x], dataset.labels[find_x]
+        self.title("Configuration Tuning")
 
-def main(directory, search_function, **params):
-    start = time.time()
-    files = os.listdir(directory)
-    for filename in files:
-        data: Dataset = load_csv(filename, directory, dtype=float)
-        best_complexity = search_function(data.data.copy(), data, **params)
-        print(f"System: {filename}\n" +
-              f"\tBest solution:\t\t{best_complexity[0].squeeze().tolist()}\n" +
-              f"\tBest performance:\t{best_complexity[1].item()}")
-        real_best_complexity = np.min(data.labels)
-        abs_error = np.abs(best_complexity[1] - real_best_complexity)
-        with open(f"./error/{filename.split('.')[0]}_error.csv", "a") as f:
-            f.write(f"{params['k']},{abs_error.item()}\n")
-        with open(f'./results/{filename.split(".")[0]}_results.csv', 'a') as f:
-            f.write(",".join(best_complexity[0].flatten().astype(str)) + f",{best_complexity[1].item()}\n")
-        print(f"Absolute error: {abs_error.item():.4f}\n")
-    print(f"Total time taken: {(time.time() - start):.2f}s")
+        datasets = [file[:-4] for file in os.listdir("datasets")]
+        self.chosen_dataset = tk.StringVar()
+        self.budget = tk.IntVar()
 
-def test_train(directory):
-    data: Dataset = load_csv("./storm.csv", directory, dtype=float)
-    test_set = data.copy(slice(0, np.floor(0.8*data.data.shape[1]).astype(int)))
-    train_set = data.copy(slice(np.floor(0.8*data.data.shape[1]).astype(int), data.data.shape[0]))
-    hidden_size = 10
-    input_size = test_set.data.shape[1]
-    max_row = np.max(data.data, axis=0, keepdims=True)
+        self.heading_title = tk.Label(self, text="Configuration Tuning", font=("Arial", 14, "bold"))
+        self.heading_title.grid(column=0, row=0)
 
-    epochs = 300
-    learning_rate = 0.01
+        dataset_label = tk.Label(self, text="Choose a program:")
+        dataset_label.grid(column=0, row=1)
+        self.dataset_combo_box = ttk.Combobox(self, values=datasets, textvariable=self.chosen_dataset)
+        self.dataset_combo_box.grid(column=0, row=2)
 
-    model = NN.MLP(input_size, hidden_size)
+        budget_label = tk.Label(self, text="Set the budget:")
+        budget_label.grid(column=0, row=3)
+        budget_entry = tk.Spinbox(self, from_ = 0, to = float("inf"), increment=1, textvariable=self.budget, validate="all", validatecommand=(self.register(self.invalid_budget), '%P'))
+        budget_entry.grid(column=0, row=4)
+        self.budget.set(100)
 
-    for epoch in range(epochs):
-        test_set.apply(np.random.shuffle)
-        test_set_data = test_set.data.copy() / max_row
-        output = model.forward(test_set_data)
-        flat_output = output.flatten()
-        loss = ((test_set.labels[:flat_output.shape[0]] - flat_output)**2).mean()
-        model.backward(test_set_data, test_set.labels, output)
-        update_weights(model, learning_rate)
-        if (epoch % 10 == 0):
-            print(f"loss: {loss}")
-            
-    return model
+        self.evaluation_option_frame = EvaluateCheckboxFrame(self)
+        self.evaluation_option_frame.grid(column=0, row=5)
 
-if __name__ == "__main__":
-    # for count_i in range(0, 10):
-    #     main("datasets", conn, budget=100-2, k=3, size_eval=2, evaluation_func=min)
-    test_train("datasets")
+        self.tuned_config_frame = tk.Text(self)
+        self.tuned_config_frame.insert(tk.END, "Results:\n")
+
+        self.hyperparameter_graph_select_frame = HyperparameterGraphSelect(self)
+        self.back_button = tk.Button(self, command=self.hide_hyperparameter_graph_select_frame, text="↩ Back")
+
+        self.button_frame = ButtonFrame(self)
+        self.button_frame.grid(column=0, row=7)
+
+        self.all_program_actions_frame = AllProgramActions(self)
+        self.all_program_actions_frame.grid(column=0, row=8)
+
+    def invalid_budget(self, P):
+        return str.isdigit(P) or P == ""
+
+    def show_tuned_config(self):
+        if self.chosen_dataset.get() == "":
+            return
+        start_time = time.time()
+        tuning_window = TrackTuning(self, int(self.budget.get()))
+        kwargs = {
+            "filename": self.chosen_dataset.get(),
+            "budget": int(self.budget.get()),
+            "evaluate": bool(self.evaluation_option_frame.evaluate_option.get()),
+        }
+        tuning_window.run(tune_configuration_for, **kwargs)
+        results_data: Dataset = load_csv(f"{kwargs['filename']}_results", "results",
+                                         title_row=True, dtype=float)
+        self.tuned_config_frame.delete("1.0", tk.END)
+        self.tuned_config_frame.insert(tk.END, "Results:\n")
+        self.tuned_config_frame.insert(tk.END, f"\tConfiguration: {results_data.data[-1, :]}\n\t"+
+                                               f"Performance: {results_data.labels[-1]}\n")
+        if bool(self.evaluation_option_frame.evaluate_option.get()):
+            error_data: Dataset = load_csv(f"{kwargs['filename']}_error", "error",
+                                           title_row=True, dtype=float)
+            self.tuned_config_frame.insert(tk.END, f"\tAbsolute Error: {error_data.labels[-1]}\n")
+        self.tuned_config_frame.insert(tk.END, f"\tTime elapsed: {time.time()-start_time}\n\n")
+        self.tuned_config_frame.grid(column=0, row=6)
+        tuning_window.close()
+
+    def show_results_plot(self):
+        if self.chosen_dataset.get() == "":
+            return
+        plot = plot_results(self.chosen_dataset.get())
+        plot.show()
+
+    def show_hyperparameter_graph_select_frame(self):
+        self.evaluation_option_frame.grid_forget()
+        self.hyperparameter_graph_select_frame.grid(column=0, row=5)
+        self.button_frame.grid_forget()
+        self.back_button.grid(column=0, row=6)
+        self.all_program_actions_frame.grid_forget()
+        self.heading_title.config(text="Select graph to view:")
+        self.tuned_config_frame.grid_forget()
+
+    def hide_hyperparameter_graph_select_frame(self):
+        self.hyperparameter_graph_select_frame.grid_forget()
+        self.button_frame.grid(column=0, row=7)
+        self.all_program_actions_frame.grid(column=0, row=8)
+        self.evaluation_option_frame.grid(column=0, row=5)
+        self.heading_title.config(text="Configuration Tuning")
+        self.back_button.grid_forget()
+
+
+class EvaluateCheckboxFrame(tk.Frame):
+    def __init__(self, master : Window):
+        super().__init__(master)
+        self.master = master
+        self.evaluate_option = tk.BooleanVar()
+
+        self.evaluate_checkbox_lb = tk.Label(self, text="Calculate and log absolute error (for testing only)")
+        self.evaluate_checkbox_lb.pack(side="left")
+
+        self.evaluate_checkbox = ttk.Checkbutton(self, variable=self.evaluate_option)
+        self.evaluate_checkbox.pack(side="right")
+
+
+class AllProgramActions(tk.LabelFrame):
+    def __init__(self, master):
+        super().__init__(master)
+        super().config(text="Actions over all programs:")
+
+        self.clear_results_button = tk.Button(self, text="Clear all results", width=30,
+                                              command=lambda: clear_folder_with_feedback("results"))
+        self.clear_results_button.pack(side="left")
+
+        self.save_result_graphs = tk.Button(self, text="Save all result graphs", width=30,
+                                            command=self.save_results_plot)
+        self.save_result_graphs.pack(side="right")
+
+    @staticmethod
+    def save_results_plot():
+        directory = filedialog.askdirectory(title="Please select a folder to save into:")
+        result_files = os.listdir("./results/")
+        for file in result_files:
+            name = file.split("_")[0]
+            plot = plot_results(name)
+            plot.savefig(directory+"/"+name+"_results"+".png")
+            plot.clf()
+
+
+class ButtonFrame(tk.Frame):
+    def __init__(self, master : Window):
+        super().__init__(master)
+
+        self.search_button = tk.Button(self, text="Tune configuration", width=20,
+                                       command=master.show_tuned_config, state="disabled")
+        self.search_button.pack(side="left")
+
+        self.prev_results_button = tk.Button(self, text="View previous results", width=20,
+                                             command=master.show_results_plot, state="disabled")
+        self.prev_results_button.pack(side="left")
+
+        master.dataset_combo_box.bind("<<ComboboxSelected>>", self.enable_conditional_buttons)
+
+        hyperparameter_results = tk.Button(self, text="Evaluate hyperparameters", width=20,
+                                           command=master.show_hyperparameter_graph_select_frame)
+        hyperparameter_results.pack(side="right")
+
+    def enable_conditional_buttons(self, *event):
+        self.search_button.config(state="normal")
+        self.prev_results_button.config(state="normal")
+
+class HyperparameterGraphSelect(tk.Frame):
+    def __init__(self, master : Window):
+        super().__init__(master)
+        self.master = master
+
+        x_axis_label = tk.Label(self, text="X axis:")
+        x_axis_label.pack()
+
+        hyperparameter_frame = tk.Frame(self)
+        hyperparameter_frame.pack()
+
+        hyperparameter_radiobuttons = []
+        self.x_selected = tk.StringVar()
+        for hyperparameter in ["Budget", "Evaluation size", "Hidden layer size", "Epochs for evaluation batch",
+                               "Learning rate", "Epochs for one batch"]:
+            hyperparameter_radiobuttons.append(
+                tk.Radiobutton(hyperparameter_frame, text=hyperparameter, variable=self.x_selected,
+                               value=settings_info[hyperparameter]['csv_title'], indicatoron=False, width=20,
+                               padx=5, pady=5)
+            )
+            hyperparameter_radiobuttons[-1].pack(side="left")
+            self.master.update()
+            ToolTip(self, hyperparameter_radiobuttons[-1], settings_info[hyperparameter]['description'], depth=1)
+        y_axis_label = tk.Label(self, text="Y axis:")
+        y_axis_label.pack()
+        metric_frame = tk.Frame(self)
+        metric_frame.pack()
+        metric_radiobuttons = []
+        self.y_selected = tk.StringVar()
+        for metric in ["Time taken", "Mean Absolute Error"]:
+            metric_radiobuttons.append(
+                tk.Radiobutton(metric_frame, text=metric, variable=self.y_selected,
+                               value=settings_info[metric]['csv_title'], indicatoron=False, width=20, padx=5, pady=5)
+            )
+            metric_radiobuttons[-1].pack(side="left")
+
+        render_button = tk.Button(self, text="Render Graph", command=self.generate_graph)
+        render_button.pack()
+
+        separator = ttk.Separator(self, orient="horizontal")
+        separator.pack(fill="x")
+
+        all_program_actions_frame = AllProgramActionsHyperparameter(self)
+        all_program_actions_frame.pack()
+
+    def generate_graph(self):
+        if self.x_selected.get() == "":
+            return
+        if self.y_selected.get() == "":
+            return
+        print(f"file: {self.master.chosen_dataset.get()}, hyperparameter: {self.x_selected.get()}, metric: {self.y_selected.get()}, budget: {self.master.budget.get()}")
+        plot = plot_hyperparameters(self.master.chosen_dataset.get(), self.master.budget.get(), self.x_selected.get(),
+                             self.y_selected.get())
+        plot.show()
+
+
+class AllProgramActionsHyperparameter(tk.LabelFrame):
+    def __init__(self, master):
+        super().__init__(master)
+        super().config(text="Actions over all programs and hyperparameters:")
+
+        self.save_hyperparameter_graphs = tk.Button(self, text="Save all hyperparameter\ngraphs", width=20,
+                                                    command=self.save_hyperparameter_plot)
+        self.save_hyperparameter_graphs.pack(side="left")
+
+        self.measure_hyperparameters_button = tk.Button(self, text="Measure hyperparameters\n(for testing only)", width=20,
+                                                        command=self.start_measure_hyperparameter_performance)
+        self.measure_hyperparameters_button.pack(side="left")
+        ToolTip(self, self.measure_hyperparameters_button, "Warning: this can take hours; requires brute searching the dataset", depth=2)
+
+        self.clear_hyperparameter_measurements_button = tk.Button(self, text="Clear all hyperparameter\nmeasurements",
+                                                                  width=20,
+                                                                  command=lambda: clear_folder_with_feedback("error"))
+        self.clear_hyperparameter_measurements_button.pack(side="right")
+
+    @staticmethod
+    def start_measure_hyperparameter_performance():
+        mhp_loading_window = measure_hyperparameter_performance.MeasureHyperparameterPerformance()
+        mhp_loading_window.run()
+        mhp_loading_window.close()
+
+    @staticmethod
+    def save_hyperparameter_plot():
+        budget = simpledialog.askinteger("Budget", "What budget?")
+        directory = filedialog.askdirectory(title="Please select a folder to save into:")
+        result_files = os.listdir("./error/")
+        hyperparameters = [settings_info[x]['csv_title'] for x in ["Budget", "Evaluation size", "Hidden layer size",
+                                                                       "Epochs for evaluation batch",
+                                                                       "Learning rate", "Epochs for one batch"]]
+        metrics = [settings_info[x]['csv_title'] for x in ["Time taken", "Mean Absolute Error"]]
+        for file in result_files:
+            for hyperparameter in hyperparameters:
+                for metric in metrics:
+                    name = file.split("_")[0]
+                    print(f"file: {name}, hyperparameter: {hyperparameter}, metric: {metric}, budget: {budget}")
+                    plot = plot_hyperparameters(name, str(budget), hyperparameter, metric)
+                    plot.savefig(directory+"/"+name+f"_{hyperparameter}_{metric}.png")
+                    plot.clf()
+
+
+#class based on https://stackoverflow.com/questions/3221956/how-do-i-display-tooltips-in-tkinter
+class ToolTip:
+    def __init__(self, parent, widget, text, depth):
+        self.widget = widget
+        self.text = text
+        self.parent = parent
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.leave)
+        self.waiter = None
+        self.toplevel_window = None
+        self.depth = depth
+
+    def widget_after(self, event=None):
+        self.waiter = self.widget.after(100, lambda:self.show(event))
+
+    def show(self, event=None):
+        self.toplevel_window = tk.Toplevel(self.widget)
+        self.toplevel_window.wm_overrideredirect(True)
+        x, y, _, _ = self.widget.bbox("insert")
+        lb = tk.Label(self.toplevel_window, text=self.text, wraplength=200)
+        lb.config(bg="white", padx=5, pady=5, borderwidth=1, relief="solid", font=("Arial", 8))
+        lb.pack()
+        x_given_depth = 0
+        y_given_depth = 0
+        current_master = self.parent
+        for _ in range(self.depth):
+            current_master = current_master.master
+            x_given_depth += current_master.winfo_x()
+            y_given_depth += current_master.winfo_y()
+        if event:
+            self.toplevel_window.wm_geometry(
+                f"+{x_given_depth + self.parent.winfo_x() + self.widget.winfo_x() + event.x + 5}" +
+                f"+{y_given_depth + self.parent.winfo_y() + self.widget.winfo_y() + event.y + 5}")
+        else:
+            self.toplevel_window.wm_geometry(
+                f"+" +
+                f"{x_given_depth + self.parent.winfo_x() + self.widget.winfo_x() + self.widget.winfo_width()}" +
+                f"+{y_given_depth + self.parent.winfo_x() + self.widget.winfo_x() + self.widget.winfo_height() + 5}"
+            )
+
+    def hide(self):
+        if self.toplevel_window:
+            self.toplevel_window.destroy()
+            self.toplevel_window = None
+
+    def enter(self, event):
+        if (self.waiter is None) and (self.toplevel_window is None):
+            self.widget_after(event)
+
+    def leave(self, event=None):
+        if self.waiter:
+            self.widget.after_cancel(self.waiter)
+        self.waiter = None
+        self.hide()
+
+if __name__ == '__main__':
+    window = Window()
+    window.mainloop()
